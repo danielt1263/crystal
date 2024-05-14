@@ -78,6 +78,31 @@ Notes on the above function:
   extension), or one of the built in `LANGUAGE` options such as Python, Perl or
   Tcl
 
+### Working with nodeIds
+
+Notice in the above example that the function accepts a `team_id integer`
+argument. Often when working with IDs, it's preferable to use the object's
+nodeId instead. This can be done by accepting the object as an input parameter
+and adding a smart comment that only the nodeId is needed.
+
+```sql
+CREATE OR REPLACE FUNCTION app_public.toggle_favorite(car_id app_public.car) RETURNS void
+  LANGUAGE 'plpgsql'
+  AS $$
+    DECLARE
+      caller_id integer;
+    BEGIN
+      caller_id := NULLIF(current_setting('jwt.claims.owner_id'::text, true), ''::text)::integer;
+      DELETE FROM app_public.favorite WHERE (favorite.car_id = toggle_favorite.car_id.id AND owner_id = caller_id);
+      IF not found THEN
+        INSERT INTO app_public.favorite (owner_id, car_id) VALUES (caller_id, toggle_favorite.car_id.id);
+      end if;
+    END;
+  $$ LANGUAGE 'plpgsql' VOLATILE;
+
+COMMENT ON FUNCTION baby_ion.toggle_favorite(baby_ion.car) IS '@arg0variant nodeId';
+```
+
 ### pgStrictFunctions
 
 If you'd like PostGraphile to treat all function arguments as required
